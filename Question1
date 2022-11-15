@@ -31,3 +31,40 @@ void main(void)
 	return 0;
 }
 
+
+
+
+#include <msp430.h>
+
+#define CALADC_15V_30C  *((unsigned int *)0x1A1A)                 // Temperature Sensor Calibration-30 C
+                                                                  // See device datasheet for TLV table memory mapping
+#define CALADC_15V_85C  *((unsigned int *)0x1A1C)                 // Temperature Sensor Calibration-85 C
+
+volatile float temp;
+volatile float IntDegF;
+volatile float IntDegC;
+
+int main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;                                     // Stop WDT
+
+    TB0CCTL0 |= CCIE;                                             // TBCCR0 interrupt enabled
+    TB0CCR0 = 65535;
+    TB0CTL = TBSSEL__ACLK | MC__UP;                               // ACLK, UP mode
+
+    // Configure ADC - Pulse sample mode; ADCSC trigger
+    ADCCTL0 |= ADCSHT_8 | ADCON;                                  // ADC ON,temperature sample period>30us
+    ADCCTL1 |= ADCSHP;                                            // s/w trig, single ch/conv, MODOSC
+    ADCCTL2 &= ~ADCRES;                                         // clear ADCRES in ADCCTL
+    ADCCTL2 |= ADCRES_2;                                          // 12-bit conversion results
+    ADCMCTL0 |= ADCSREF_1 | ADCINCH_12;                           // ADC input ch A12 => temp sense
+    ADCIE |=ADCIE0;                                               // Enable the Interrupt request for a completed ADC_B conversion
+
+    // Configure reference
+    PMMCTL0_H = PMMPW_H;                                          // Unlock the PMM registers
+    PMMCTL2 |= INTREFEN | TSENSOREN | REFVSEL_0;                  // Enable internal 1.5V reference and temperature sensor
+    __delay_cycles(400);                                          // Delay for reference settling
+
+    __bis_SR_register(LPM0_bits | GIE);                           // LPM0 with interrupts enabled
+    __no_operation();                                             // Only for debugger
+}
