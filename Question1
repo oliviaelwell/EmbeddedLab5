@@ -1,39 +1,3 @@
-#include <msp430.h> 
-#define CALACD_15V_30C *((unsigned int *)0x1A1A)
-
-#define CALADC_15V_85C *((unsigned int *)0x1A1C)
-
-volatile long temp, templaw;
-volatile float IntDegf;
-volatile float IntDegC;
-
-int count;
-
-/**
- * main.c
- */
-void ConfigureADC_temp();
-void main(void)
-{
-	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	delay_cycles(5);
-	ConfigureADC_temp();
-	while(1){
-	    temp = ADCMEM0;
-	    IntDegC= (temp - CALADC_15V_10C)*(85-30))/(CALADC_15V_85C);
-	    IntDegF = 9*IntDegC/5+32;
-
-
-	}
-
-
-	
-	return 0;
-}
-
-
-
-
 #include <msp430.h>
 
 #define CALADC_15V_30C  *((unsigned int *)0x1A1A)                 // Temperature Sensor Calibration-30 C
@@ -68,3 +32,60 @@ int main(void)
     __bis_SR_register(LPM0_bits | GIE);                           // LPM0 with interrupts enabled
     __no_operation();                                             // Only for debugger
 }
+
+
+
+// ADC interrupt service routine
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=ADC_VECTOR
+__interrupt void ADC_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(ADCIV,ADCIV_ADCIFG))
+    {
+        case ADCIV_NONE:
+            break;
+        case ADCIV_ADCOVIFG:
+            break;
+        case ADCIV_ADCTOVIFG:
+            break;
+        case ADCIV_ADCHIIFG:
+            break;
+        case ADCIV_ADCLOIFG:
+            break;
+        case ADCIV_ADCINIFG:
+            break;
+        case ADCIV_ADCIFG:
+            temp = ADCMEM0;
+            // Temperature in Celsius
+            // The temperature (Temp, C)=
+            IntDegC = (temp-CALADC_15V_30C)*(85-30)/(CALADC_15V_85C-CALADC_15V_30C)+30;
+
+            // Temperature in Fahrenheit
+            // Tf = (9/5)*Tc | 32
+            IntDegF = 9*IntDegC/5+32;
+            //__bic_SR_register_on_exit(LPM3_bits);               // Exit LPM3
+            // Set break point
+            break;
+        default:
+            break;
+    }
+}
+
+// Timer B0 interrupt service routine
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector = TIMER0_B0_VECTOR
+__interrupt void Timer_B (void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(TIMER0_B0_VECTOR))) Timer_B (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    ADCCTL0 |= ADCENC | ADCSC;                                    // Sampling and conversion start
+}
+
