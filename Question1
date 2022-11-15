@@ -1,1 +1,33 @@
+#include <msp430.h> 
+#define CALACD_15V_30C *((unsigned int *)0x1A1A)
+
+#define CALADC_15V_85C *((unsigned int *)0x1A1C)
+
+volatile long temp, templaw;
+volatile float IntDegf;
+volatile float IntDegC;
+
+int count;
+
+/**
+ * main.c
+ */
+void ConfigureADC_temp();
+void main(void)
+{
+	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
+	delay_cycles(5);
+	ConfigureADC_temp();
+	while(1){
+	    temp = ADCMEM0;
+	    IntDegC= (temp - CALADC_15V_10C)*(85-30))/(CALADC_15V_85C);
+	    IntDegF = 9*IntDegC/5+32;
+
+
+	}
+
+
+	
+	return 0;
+}
 
