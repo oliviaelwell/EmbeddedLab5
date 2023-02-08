@@ -4,9 +4,9 @@
                                                                   // See device datasheet for TLV table memory mapping
 #define CALADC_15V_85C  *((unsigned int *)0x1A1C)                 // Temperature Sensor Calibration-85 C
 
-volatile float temp;
-volatile float IntDegF;
-volatile float IntDegC;
+volatile float temp;                                              //sets the temp 
+volatile float IntDegF;                                          // for the degrres in Fahrenheit
+volatile float IntDegC;                                          // for the degrees in Celsius
 
 int main(void)
 {
